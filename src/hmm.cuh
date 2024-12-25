@@ -1,3 +1,5 @@
+#pragma once
+
 #include "helper.cuh"
 
 class Hmm {
