@@ -26,12 +26,18 @@ void infer() {
         encoder.to_device_inplace();
     }
 
+    auto keyGen_start = clock();
+
     KeyGenerator keygen(context);
     SecretKey secret_key = keygen.secret_key();
     PublicKey public_key = keygen.create_public_key(false);
     RelinKeys relin_keys = keygen.create_relin_keys(false);
     GaloisKeys galois_keys = keygen.create_galois_keys(false);
 
+    auto keyGen_end = clock();
+    cout << "keyGen: " << (float)(keyGen_end - keyGen_start) / CLOCKS_PER_SEC
+         << "s" << endl;
+    
     Encryptor encryptor(context);
     encryptor.set_public_key(public_key);
     Evaluator evaluator(context);
@@ -43,6 +49,7 @@ void infer() {
     string weightfile = "../data/model_weights.csv";
     auto weights = readCsvToWeights(weightfile);
 
+    auto modelEnc_start = clock();
     vector<Ciphertext> conv_cts;
     vector<Ciphertext> conv_b_cts;
     for (size_t i = 0; i < 4; i++) {
@@ -115,10 +122,17 @@ void infer() {
     encoder.encode_complex64_simd(fct2_b, std::nullopt, scale, fct2_b_pt);
     encryptor.encrypt_asymmetric(fct2_b_pt, fct2_b_ct);
 
+    auto modelEnc_end = clock();
+    cout << "modelEnc: " << (float)(modelEnc_end - modelEnc_start) / CLOCKS_PER_SEC
+         << "s" << endl;
+
     //////////////// Encrypt Data //////////////////
     cout << "Encrypt Data" << endl;
     string testfile = "../data/MNISTt10k(28x28).csv";
     auto test_datas = readCsvToTestDatas(testfile);
+
+    auto dataEnc_start = clock();
+
     vector<Ciphertext> test_data_cts;
     for (size_t i = 0; i < 49; i++) {
         vector<complex<double>> test_data(slot_count, 0);
@@ -140,6 +154,10 @@ void infer() {
         encryptor.encrypt_asymmetric(test_data_pt, test_data_ct);
         test_data_cts.push_back(test_data_ct);
     }
+
+    auto dataEnc_end = clock();
+    cout << "dataEnc: " << (float)(dataEnc_end - dataEnc_start) / CLOCKS_PER_SEC
+         << "s" << endl;
 
     //////////////// Infer //////////////////
     cout << "Infer" << endl;
